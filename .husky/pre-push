@@ -1,0 +1,30 @@
+# Block direct pushes to main/master.
+# Bypass (rare, deliberate):  ALLOW_PUSH_MAIN=1 git push
+
+protected="main master"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  branch=${remote_ref#refs/heads/}
+
+  for p in $protected; do
+    [ "$branch" = "$p" ] || continue
+
+    if [ "$ALLOW_PUSH_MAIN" = "1" ]; then
+      echo "⚠️  ALLOW_PUSH_MAIN=1 — pushing directly to '$branch'."
+      continue
+    fi
+
+    echo
+    echo "❌ Direct push to '$branch' is blocked."
+    echo
+    echo "   Work on a branch and open a PR instead:"
+    echo "     git switch -c my-change"
+    echo "     git push -u origin my-change"
+    echo
+    echo "   Deliberate override: ALLOW_PUSH_MAIN=1 git push"
+    echo
+    exit 1
+  done
+done
+
+exit 0

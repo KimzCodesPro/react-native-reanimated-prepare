@@ -1,0 +1,37 @@
+prev=$1
+new=$2
+flag=$3
+
+# Only act on branch checkouts (not file checkouts)
+[ "$flag" = "1" ] || exit 0
+
+# Only act when prev == new (typical for a freshly created branch)
+[ "$prev" = "$new" ] || exit 0
+
+branch=$(git symbolic-ref --short -q HEAD) || exit 0
+
+# Skip if already prefixed, contains a slash, or is main
+case "$branch" in
+  [0-9][0-9]-*|*/*|main|master) exit 0 ;;
+esac
+
+# Confirm this is a brand-new branch (reflog has exactly one entry)
+reflog_count=$(git reflog show "$branch" 2>/dev/null | wc -l | tr -d ' ')
+[ "$reflog_count" = "1" ] || exit 0
+
+# Collect all NN- prefixes in use across local + remote branches
+used=$(git branch -a --format='%(refname:short)' \
+  | sed 's|^origin/||' \
+  | grep -oE '^[0-9]{2}' \
+  | sort -u)
+
+# Find the lowest free slot (fills gaps instead of just max+1)
+n=0
+while printf '%s\n' "$used" | grep -qx "$(printf '%02d' "$n")"; do
+  n=$((n + 1))
+done
+next=$(printf "%02d" "$n")
+
+new_name="${next}-${branch}"
+git branch -m "$branch" "$new_name"
+echo "Renamed branch: $branch → $new_name"

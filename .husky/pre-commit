@@ -1,0 +1,44 @@
+# Block commits made directly on main/master.
+# Bypass (rare, deliberate):  ALLOW_COMMIT_MAIN=1 git commit ...
+
+branch=$(git symbolic-ref --short -q HEAD || echo "")
+
+case "$branch" in
+  main|master)
+    if [ "$ALLOW_COMMIT_MAIN" = "1" ]; then
+      echo "⚠️  ALLOW_COMMIT_MAIN=1 — committing directly on '$branch'."
+    else
+      echo
+      echo "❌ Commits directly on '$branch' are blocked."
+      echo
+      echo "   Your work is untouched. Move it to a branch:"
+      echo "     git switch -c my-change        # staged + unstaged changes come along"
+      echo
+      echo "   Or park it for later:"
+      echo "     git stash -u"
+      echo "     git switch -c my-change"
+      echo "     git stash pop"
+      echo
+      echo "   Deliberate override: ALLOW_COMMIT_MAIN=1 git commit ..."
+      echo
+      exit 1
+    fi
+    ;;
+esac
+
+echo "Running lint..."
+npm run lint || {
+  echo
+  echo "❌ Lint failed — fix the problems listed above (file:line:column) before committing."
+  echo "   Tip: run 'npm run lint -- --fix' to auto-fix what's fixable."
+  exit 1
+}
+
+echo "Running type-check..."
+npm run type-check || {
+  echo
+  echo "❌ Type-check failed — fix the type errors listed above before committing."
+  exit 1
+}
+
+echo "All checks passed. Proceeding with commit."
