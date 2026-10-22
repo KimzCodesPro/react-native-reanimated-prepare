@@ -85,4 +85,13 @@ module.exports = defineConfig([
       ],
     },
   },
+  {
+    // Reanimated shared values are mutated via `.value` by design, which the
+    // React Compiler `immutability` rule misflags. Scope the exception to the
+    // animated screens rather than disabling it project-wide.
+    files: ["src/app/**/*.tsx"],
+    rules: {
+      "react-hooks/immutability": "off",
+    },
+  },
 ]);
